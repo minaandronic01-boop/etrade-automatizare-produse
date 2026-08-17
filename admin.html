@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-TRADE — Admin identificare produse</title>
+<style>
+  :root{ --navy:#1F3A5F; --navy-light:#2E4F7A; --accent:#C0392B; --bg:#F5F6F8; --card:#FFFFFF; --border:#E1E4E9;
+    --text:#1E2430; --muted:#6B7280; --ok:#1E7A46; --ok-bg:#E7F5EC; --warn-bg:#FDF3E7; --warn:#8A5A00; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);}
+  header{background:var(--navy);color:#fff;padding:18px 28px;}
+  header h1{margin:0;font-size:20px;}
+  nav.tabs{display:flex;gap:4px;background:var(--navy-light);padding:0 24px;overflow-x:auto;}
+  nav.tabs button{background:transparent;border:none;color:#fff;opacity:.7;padding:12px 16px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;}
+  nav.tabs button.active{opacity:1;border-bottom:3px solid #E8756A;}
+  main{max-width:1100px;margin:0 auto;padding:20px;}
+  .panel{display:none;} .panel.active{display:block;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:16px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{border:1px solid var(--border);padding:7px 8px;text-align:left;vertical-align:top;}
+  th{background:#F1F3F6;color:var(--navy);}
+  tr.clickable{cursor:pointer;} tr.clickable:hover{background:#F9FAFB;}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
+  .badge.nou{background:var(--warn-bg);color:var(--warn);}
+  .badge.lucru{background:#E7ECF5;color:var(--navy);}
+  .badge.rezolvat{background:var(--ok-bg);color:var(--ok);}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+  input[type=text]{padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;}
+  select{padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;}
+  .btn{background:var(--navy);color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn.secondary{background:#fff;color:var(--navy);border:1px solid var(--navy);}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10;}
+  .modal{background:#fff;border-radius:10px;max-width:560px;width:100%;max-height:85vh;overflow:auto;padding:22px;}
+  .hidden{display:none !important;}
+  .field-line{margin:4px 0;font-size:13px;}
+  .field-line b{color:var(--navy);}
+  img.foto{max-width:100%;border-radius:6px;margin-top:10px;}
+  td input{border:1px solid transparent;padding:4px 5px;font-size:13px;background:transparent;width:100%;}
+  td input:focus{border:1px solid var(--accent);background:#fff;}
+  .del-btn{background:transparent;border:none;color:var(--accent);cursor:pointer;font-size:15px;}
+  .drop{border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer;background:#fafbfc;}
+  .note{font-size:12px;color:var(--muted);margin-top:6px;}
+  textarea{width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;}
+</style>
+</head>
+<body>
+<header><h1>E-TRADE — Panou intern: identificare produse</h1></header>
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="requests">Cereri clienți</button>
+  <button class="tab-btn" data-tab="ocr">Citire poză etichetă</button>
+  <button class="tab-btn" data-tab="xref">Cross-reference mărci</button>
+</nav>
+<main>
+
+<section class="panel active" id="panel-requests">
+  <div class="card">
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="Caută companie / cod / descriere...">
+      <select id="status-filter">
+        <option value="">Toate statusurile</option>
+        <option value="nou">Nou</option>
+        <option value="in lucru">În lucru</option>
+        <option value="rezolvat">Rezolvat</option>
+      </select>
+      <button class="btn secondary" onclick="loadRequests()">Reîmprospătează</button>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Data</th><th>Companie</th><th>Categorie</th><th>Cod</th><th>Urgență</th><th>Status</th><th>Email</th></tr></thead>
+      <tbody id="req-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel" id="panel-ocr">
+  <div class="card">
+    <h2>Citire automată a textului de pe o etichetă</h2>
+    <div class="note">Încarcă o poză cu eticheta piesei pentru extragere de text (OCR, direct în browser).</div>
+    <div class="drop" id="drop-ocr">Trage o imagine aici sau apasă pentru a încărca</div>
+    <input type="file" id="file-ocr" accept="image/*" class="hidden">
+    <img id="preview-ocr" class="foto hidden">
+    <div style="margin-top:12px;"><button class="btn" id="btn-run-ocr" disabled>Extrage text din imagine</button></div>
+    <div id="ocr-status" class="note"></div>
+    <textarea id="ocr-result" rows="4" class="hidden" style="margin-top:10px;"></textarea>
+  </div>
+</section>
+
+<section class="panel" id="panel-xref">
+  <div class="card">
+    <div class="toolbar">
+      <input type="text" id="xr-search" placeholder="Caută în tabel...">
+      <button class="btn secondary" onclick="xrAddRow()">+ Rând nou</button>
+      <span class="badge nou" id="xr-count"></span>
+    </div>
+    <table>
+      <thead><tr><th>Categorie</th><th>Cod intern</th><th>Echivalent 1</th><th>Echivalent 2</th><th>Echivalent 3</th><th>Observații</th><th></th></tr></thead>
+      <tbody id="xr-body"></tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+
+<div class="modal-bg hidden" id="modal-bg">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------- CERERI ---------- */
+function statusBadge(s){
+  const cls = s === 'nou' ? 'nou' : (s === 'in lucru' ? 'lucru' : 'rezolvat');
+  return `<span class="badge ${cls}">${s}</span>`;
+}
+
+async function loadRequests(){
+  const q = document.getElementById('search').value.trim();
+  const status = document.getElementById('status-filter').value;
+  const params = new URLSearchParams();
+  if(q) params.set('q', q); else if(status) params.set('status', status);
+  const res = await fetch('/api/admin/requests?' + params.toString());
+  const rows = await res.json();
+  const body = document.getElementById('req-body');
+  body.innerHTML = '';
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.className = 'clickable';
+    tr.innerHTML = `<td>#${r.id}</td><td>${new Date(r.created_at).toLocaleString('ro-RO')}</td>
+      <td>${esc(r.companie)}</td><td>${esc(r.categorie)}</td><td>${esc(r.cod)}</td>
+      <td>${esc(r.urgenta)}</td><td>${statusBadge(r.status)}</td>
+      <td>${r.email_trimis ? '✅' : '—'}</td>`;
+    tr.addEventListener('click', ()=>openRequest(r.id));
+    body.appendChild(tr);
+  });
+}
+document.getElementById('search').addEventListener('input', debounce(loadRequests, 300));
+document.getElementById('status-filter').addEventListener('change', loadRequests);
+
+async function openRequest(id){
+  const res = await fetch('/api/admin/requests/' + id);
+  const r = await res.json();
+  const campuriHtml = Object.entries(r.campuri).map(([k,v])=>`<div class="field-line"><b>${esc(k)}:</b> ${esc(v)}</div>`).join('');
+  const waLink = 'https://wa.me/' + (r.telefon || '').replace(/\D/g,'') ;
+  const contactParts = [r.contact, r.telefon, r.email].filter(Boolean).map(esc).join(' · ');
+  document.getElementById('modal-content').innerHTML = `
+    <h2>Cerere #${r.id}</h2>
+    ${r.companie ? `<div class="field-line"><b>Companie:</b> ${esc(r.companie)}</div>` : ''}
+    <div class="field-line"><b>Contact:</b> ${contactParts || '—'}</div>
+    <div class="field-line"><b>Urgență:</b> ${esc(r.urgenta)}</div>
+    <div class="field-line"><b>Categorie:</b> ${esc(r.categorie)}</div>
+    ${campuriHtml}
+    ${r.cod ? `<div class="field-line"><b>Cod:</b> ${esc(r.cod)}</div>` : ''}
+    ${r.descriere ? `<div class="field-line"><b>Descriere:</b> ${esc(r.descriere)}</div>` : ''}
+    ${r.are_foto ? `<img class="foto" src="/api/admin/requests/${r.id}/foto">` : ''}
+    <div style="margin-top:14px;">
+      <label>Status</label>
+      <select id="modal-status">
+        <option value="nou" ${r.status==='nou'?'selected':''}>Nou</option>
+        <option value="in lucru" ${r.status==='in lucru'?'selected':''}>În lucru</option>
+        <option value="rezolvat" ${r.status==='rezolvat'?'selected':''}>Rezolvat</option>
+      </select>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn" onclick="saveStatus(${r.id})">Salvează status</button>
+      ${r.telefon ? `<a class="btn secondary" href="${waLink}" target="_blank">Deschide WhatsApp</a>` : ''}
+      ${r.email ? `<a class="btn secondary" href="mailto:${r.email}">Răspunde pe email</a>` : ''}
+      <button class="btn ghost" onclick="closeModal()">Închide</button>
+    </div>
+  `;
+  document.getElementById('modal-bg').classList.remove('hidden');
+}
+function closeModal(){ document.getElementById('modal-bg').classList.add('hidden'); }
+document.getElementById('modal-bg').addEventListener('click', e=>{ if(e.target.id==='modal-bg') closeModal(); });
+
+async function saveStatus(id){
+  const status = document.getElementById('modal-status').value;
+  await fetch('/api/admin/requests/' + id, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+  closeModal();
+  loadRequests();
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+
+/* ---------- OCR ---------- */
+let ocrImageData = null;
+(function setupOcrDrop(){
+  const drop = document.getElementById('drop-ocr'), fileInput = document.getElementById('file-ocr'), preview = document.getElementById('preview-ocr');
+  drop.addEventListener('click', ()=>fileInput.click());
+  drop.addEventListener('dragover', e=>e.preventDefault());
+  drop.addEventListener('drop', e=>{ e.preventDefault(); if(e.dataTransfer.files.length) handle(e.dataTransfer.files[0]); });
+  fileInput.addEventListener('change', e=>{ if(e.target.files.length) handle(e.target.files[0]); });
+  function handle(file){
+    const reader = new FileReader();
+    reader.onload = ev=>{ preview.src = ev.target.result; preview.classList.remove('hidden'); ocrImageData = ev.target.result;
+      document.getElementById('btn-run-ocr').disabled = false; };
+    reader.readAsDataURL(file);
+  }
+})();
+let tesseractReady = false;
+(function loadTesseract(){
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js';
+  s.onload = ()=>{ tesseractReady = true; };
+  s.onerror = ()=>{ document.getElementById('ocr-status').textContent = 'Motorul OCR nu a putut fi încărcat (necesită acces la internet către cdnjs.cloudflare.com).'; };
+  document.head.appendChild(s);
+})();
+document.getElementById('btn-run-ocr').addEventListener('click', async ()=>{
+  const status = document.getElementById('ocr-status');
+  if(typeof Tesseract === 'undefined'){ status.textContent = 'Motorul OCR nu este disponibil.'; return; }
+  status.textContent = 'Se procesează...';
+  try{
+    const { data: { text } } = await Tesseract.recognize(ocrImageData, 'eng');
+    document.getElementById('ocr-result').value = text.trim();
+    document.getElementById('ocr-result').classList.remove('hidden');
+    status.textContent = 'Text extras.';
+  }catch(e){ status.textContent = 'Extragerea a eșuat: ' + e.message; }
+});
+
+/* ---------- CROSS-REFERENCE (persistat in baza de date) ---------- */
+let xrData = [];
+async function xrLoad(){
+  const res = await fetch('/api/admin/xref');
+  xrData = await res.json();
+  xrRender('');
+}
+function xrRender(filter){
+  const body = document.getElementById('xr-body');
+  body.innerHTML = '';
+  const f = (filter||'').toLowerCase();
+  xrData.forEach(row=>{
+    const matches = !f || Object.values(row).some(v=>String(v).toLowerCase().includes(f));
+    if(!matches) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${escAttr(row.categorie)}" data-id="${row.id}" data-k="categorie"></td>
+      <td><input value="${escAttr(row.cod_intern)}" data-id="${row.id}" data-k="cod_intern"></td>
+      <td><input value="${escAttr(row.eq1)}" data-id="${row.id}" data-k="eq1"></td>
+      <td><input value="${escAttr(row.eq2)}" data-id="${row.id}" data-k="eq2"></td>
+      <td><input value="${escAttr(row.eq3)}" data-id="${row.id}" data-k="eq3"></td>
+      <td><input value="${escAttr(row.observatii)}" data-id="${row.id}" data-k="observatii"></td>
+      <td><button class="del-btn" data-id="${row.id}">✕</button></td>`;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('change', ()=>xrSave(inp.dataset.id));
+  });
+  body.querySelectorAll('.del-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      await fetch('/api/admin/xref/' + btn.dataset.id, { method:'DELETE' });
+      xrLoad();
+    });
+  });
+  document.getElementById('xr-count').textContent = xrData.length + ' rânduri';
+}
+function escAttr(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); }
+
+async function xrSave(id){
+  const row = { categorie:'', cod_intern:'', eq1:'', eq2:'', eq3:'', observatii:'' };
+  document.querySelectorAll(`input[data-id="${id}"]`).forEach(inp=>{ row[inp.dataset.k] = inp.value; });
+  await fetch('/api/admin/xref/' + id, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(row) });
+}
+async function xrAddRow(){
+  await fetch('/api/admin/xref', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) });
+  xrLoad();
+}
+document.getElementById('xr-search').addEventListener('input', e=>xrRender(e.target.value));
+
+loadRequests();
+xrLoad();
+</script>
+</body>
+</html>

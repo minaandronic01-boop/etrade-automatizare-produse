@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-TRADE — Identificare produs</title>
+<style>
+  :root{ --navy:#1F3A5F; --navy-light:#2E4F7A; --accent:#C0392B; --accent-light:#E8756A;
+    --bg:#F5F6F8; --card:#FFFFFF; --border:#E1E4E9; --text:#1E2430; --muted:#6B7280;
+    --ok:#1E7A46; --ok-bg:#E7F5EC; --warn-bg:#FDF3E7; --warn:#8A5A00; --err:#B3261E; --err-bg:#FCEBEA; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;}
+  header{background:var(--navy);color:#fff;padding:22px 28px;}
+  header .eyebrow{font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.75;margin-bottom:4px;}
+  header h1{margin:0;font-size:22px;font-weight:700;}
+  header p{margin:6px 0 0;font-size:14px;opacity:.85;max-width:720px;}
+  main{max-width:760px;margin:0 auto;padding:24px 20px 60px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 22px;margin-bottom:16px;}
+  .card h2{margin:0 0 4px;font-size:17px;color:var(--navy);}
+  .card .sub{color:var(--muted);font-size:13px;margin-bottom:14px;}
+  label{display:block;font-size:13px;font-weight:600;color:var(--text);margin:12px 0 4px;}
+  label .opt{font-weight:400;color:var(--muted);}
+  input[type=text],input[type=tel],input[type=email],select,textarea{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:#fff;color:var(--text);}
+  textarea{resize:vertical;min-height:70px;}
+  .row{display:flex;gap:14px;flex-wrap:wrap;} .row > div{flex:1;min-width:160px;}
+  .radio-group{display:flex;gap:10px;flex-wrap:wrap;}
+  .radio-group label.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:20px;padding:7px 14px;font-weight:500;font-size:13px;cursor:pointer;margin:0;color:var(--text);}
+  .radio-group label.chip:has(input:checked){border-color:var(--accent);background:var(--warn-bg);}
+  .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+  .cat-grid button{border:1px solid var(--border);background:#fff;border-radius:8px;padding:12px 10px;font-size:13px;font-weight:600;cursor:pointer;text-align:left;color:var(--text);}
+  .cat-grid button.selected{border-color:var(--accent);background:var(--warn-bg);color:var(--accent);}
+  .btn{display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff;border:none;padding:10px 18px;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;}
+  .btn.secondary{background:#fff;color:var(--navy);border:1px solid var(--navy);}
+  .btn.accent{background:var(--accent);}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+  .stepper{display:flex;gap:6px;margin-bottom:18px;}
+  .stepper div{flex:1;height:5px;border-radius:3px;background:var(--border);}
+  .stepper div.done{background:var(--accent);}
+  .summary-box{background:#F9FAFB;border:1px dashed var(--border);border-radius:8px;padding:16px;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;}
+  .drop{border:2px dashed var(--border);border-radius:8px;padding:22px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer;background:#fafbfc;}
+  .drop.drag{border-color:var(--accent);background:var(--warn-bg);}
+  img.preview{max-width:100%;max-height:260px;border-radius:6px;margin-top:10px;display:block;}
+  .badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;}
+  .badge.ok{background:var(--ok-bg);color:var(--ok);}
+  .badge.warn{background:var(--warn-bg);color:var(--warn);}
+  .badge.err{background:var(--err-bg);color:var(--err);}
+  .note{font-size:12px;color:var(--muted);margin-top:8px;}
+  .hidden{display:none !important;}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Echychia Trade SRL — E-TRADE</div>
+  <h1>Identificare produs</h1>
+  <p>Completează câteva detalii despre piesa de care ai nevoie — cererea ajunge automat la echipa tehnică, salvată și (dacă e configurat) trimisă direct pe email.</p>
+</header>
+<main>
+  <div class="stepper" id="stepper"><div class="s1"></div><div class="s2"></div><div class="s3"></div><div class="s4"></div></div>
+
+  <div class="card step" id="step-1">
+    <h2>Pasul 1 — Datele tale</h2>
+    <div class="sub">Necesare pentru ca echipa E-TRADE să te poată contacta rapid.</div>
+    <div class="row">
+      <div><label>Companie</label><input type="text" id="f-companie" placeholder="Ex: Fabrica SRL"></div>
+      <div><label>Persoană de contact</label><input type="text" id="f-contact" placeholder="Nume și prenume"></div>
+    </div>
+    <div class="row">
+      <div><label>Telefon</label><input type="tel" id="f-telefon" placeholder="07xx xxx xxx"></div>
+      <div><label>Email <span class="opt">(opțional)</span></label><input type="email" id="f-email" placeholder="nume@companie.ro"></div>
+    </div>
+    <label>Nivel de urgență</label>
+    <div class="radio-group">
+      <label class="chip"><input type="radio" name="urg" value="Normal" checked> Normal</label>
+      <label class="chip"><input type="radio" name="urg" value="Urgent"> Urgent</label>
+    </div>
+    <div class="btn-row"><button class="btn" onclick="goStep(2)">Continuă →</button></div>
+  </div>
+
+  <div class="card step hidden" id="step-2">
+    <h2>Pasul 2 — Ce tip de produs cauți?</h2>
+    <div class="sub">Alege categoria cea mai apropiată — formularul se adaptează automat.</div>
+    <div class="cat-grid" id="cat-grid"></div>
+    <div class="btn-row">
+      <button class="btn secondary" onclick="goStep(1)">← Înapoi</button>
+      <button class="btn" id="to-step3" onclick="goStep(3)" disabled>Continuă →</button>
+    </div>
+  </div>
+
+  <div class="card step hidden" id="step-3">
+    <h2>Pasul 3 — Detalii despre piesă</h2>
+    <div class="sub" id="cat-label"></div>
+    <div id="dynamic-fields"></div>
+    <label>Cod / referință cunoscută <span class="opt">(dacă există)</span></label>
+    <input type="text" id="f-cod" placeholder="Ex: 6205-2RS sau cod parțial vizibil">
+    <label>Descriere liberă <span class="opt">(opțional)</span></label>
+    <textarea id="f-descriere" placeholder="Orice alt detaliu util: unde e montată piesa, ce echipament, ce a cedat etc."></textarea>
+    <label>Poză piesă / etichetă <span class="opt">(opțional, dar recomandat — se atașează automat la cerere)</span></label>
+    <div class="drop" id="drop-wizard">Trage o imagine aici sau apasă pentru a încărca</div>
+    <input type="file" id="file-wizard" accept="image/*" class="hidden">
+    <img id="preview-wizard" class="preview hidden">
+    <div class="btn-row">
+      <button class="btn secondary" onclick="goStep(2)">← Înapoi</button>
+      <button class="btn" id="submit-btn" onclick="submitRequest()">Trimite cererea →</button>
+    </div>
+    <div id="submit-error" class="note hidden" style="color:var(--err);"></div>
+  </div>
+
+  <div class="card step hidden" id="step-4">
+    <h2>Cererea a fost înregistrată</h2>
+    <div id="confirm-badges"></div>
+    <div class="summary-box" id="summary-text" style="margin-top:12px;"></div>
+    <div class="btn-row">
+      <a class="btn accent" id="wa-link" target="_blank">Trimite și pe WhatsApp</a>
+      <button class="btn ghost" onclick="copySummary()">Copiază textul</button>
+      <button class="btn secondary" onclick="location.reload()">Cerere nouă</button>
+    </div>
+  </div>
+</main>
+<footer>Cererile sunt salvate în sistemul intern E-TRADE. Datele tale sunt folosite exclusiv pentru identificarea și ofertarea produsului cerut.</footer>
+
+<script>
+const categories = {
+  mecanic: { label: "Piese mecanice — rulmenți, transmisii, ghidaje liniare, cuplaje", fields: [
+    {id:'Tip piesă', type:'select', opts:['Rulment','Transmisie','Ghidaj liniar','Cuplaj','Altul']},
+    {id:'Dimensiuni cunoscute (diametru interior / exterior / lățime)', type:'text', ph:'Ex: 25 / 52 / 15 mm'},
+    {id:'Marcă vizibilă pe piesă', type:'text', ph:'Ex: SKF, FAG, NSK...'} ]},
+  pneumatic: { label: "Componente pneumatice — cilindri, valve, sisteme de vid", fields: [
+    {id:'Tip piesă', type:'select', opts:['Cilindru','Valvă','Componentă vid','Altul']},
+    {id:'Diametru / cursă', type:'text', ph:'Ex: Ø32 x 100mm'},
+    {id:'Presiune de lucru', type:'text', ph:'Ex: 6 bar'},
+    {id:'Marcă vizibilă pe piesă', type:'text', ph:''} ]},
+  electric: { label: "Electrice & senzori — senzori de proximitate, bariere optice, cabluri", fields: [
+    {id:'Tip componentă', type:'select', opts:['Senzor de proximitate','Barieră optică','Cablu','Altul']},
+    {id:'Marcă', type:'text', ph:''},
+    {id:'Model / cod de pe carcasă', type:'text', ph:''},
+    {id:'Tip conector', type:'text', ph:'Ex: M8, M12...'} ]},
+  lubrifianti: { label: "Lubrifianți & uleiuri — hidraulice, transmisie, unsori industriale", fields: [
+    {id:'Tip produs', type:'select', opts:['Ulei hidraulic','Ulei de transmisie','Unsoare/vaselină industrială','Altul']},
+    {id:'Specificație / vâscozitate cunoscută', type:'text', ph:'Ex: ISO VG 46, DIN 51502...'},
+    {id:'Marcă / producător actual', type:'text', ph:''} ]},
+  garnituri: { label: "Garnituri & etanșări — O-ringuri, garnituri plate, kituri de reparație", fields: [
+    {id:'Tip piesă', type:'select', opts:['O-ring','Garnitură plată','Kit de reparație','Altul']},
+    {id:'Dimensiuni (diametru interior / exterior / grosime)', type:'text', ph:''},
+    {id:'Material', type:'text', ph:'Ex: NBR, FKM/Viton, PTFE...'} ]},
+  roboti: { label: "Piese de schimb pentru roboți industriali", fields: [
+    {id:'Marca robotului', type:'select', opts:['Fanuc','Kuka','ABB','Yaskawa','Altă marcă']},
+    {id:'Model robot', type:'text', ph:''},
+    {id:'Subsistem / tip piesă', type:'select', opts:['Servomotor','Senzor','Cablu','Placă electronică','Altul']} ]},
+  marcare: { label: "Marcare industrială — markere, creioane, indicatoare termice", fields: [
+    {id:'Tip produs', type:'select', opts:['Marker industrial','Creion de marcare','Indicator termic','Altul']},
+    {id:'Culoare', type:'text', ph:''},
+    {id:'Marcă', type:'text', ph:'Ex: Markal/LA-CO'} ]},
+  scule: { label: "Scule industriale & echipamente de asamblare", fields: [
+    {id:'Tip echipament', type:'text', ph:'Ex: sistem de șuruburi, pistol pneumatic...'},
+    {id:'Marcă', type:'select', opts:['Lübbering','Atlas Copco','Altă marcă']},
+    {id:'Model / cod', type:'text', ph:''} ]},
+  altele: { label: "Altă categorie / nu sunt sigur", fields: [
+    {id:'Descriere scurtă a piesei', type:'text', ph:''} ]}
+};
+
+let selectedCat = null, photoDataUrl = null;
+const catGrid = document.getElementById('cat-grid');
+Object.keys(categories).forEach(key=>{
+  const b = document.createElement('button');
+  b.textContent = categories[key].label.split(' — ')[0];
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#cat-grid button').forEach(x=>x.classList.remove('selected'));
+    b.classList.add('selected'); selectedCat = key;
+    document.getElementById('to-step3').disabled = false;
+  });
+  catGrid.appendChild(b);
+});
+
+function renderDynamicFields(){
+  const wrap = document.getElementById('dynamic-fields');
+  wrap.innerHTML = '';
+  document.getElementById('cat-label').textContent = categories[selectedCat].label;
+  categories[selectedCat].fields.forEach(f=>{
+    const l = document.createElement('label'); l.textContent = f.id; wrap.appendChild(l);
+    let el;
+    if(f.type === 'select'){
+      el = document.createElement('select');
+      el.innerHTML = '<option value="">— alege —</option>' + f.opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+    } else { el = document.createElement('input'); el.type='text'; el.placeholder = f.ph || ''; }
+    el.dataset.label = f.id; el.className = 'dyn-field';
+    wrap.appendChild(el);
+  });
+}
+
+function goStep(n){
+  document.querySelectorAll('.step').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('step-'+n).classList.remove('hidden');
+  ['s1','s2','s3','s4'].forEach((c,i)=>document.querySelector('#stepper .'+c).classList.toggle('done', i < n));
+  if(n===3) renderDynamicFields();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+(function setupDrop(){
+  const drop = document.getElementById('drop-wizard'), fileInput = document.getElementById('file-wizard'), preview = document.getElementById('preview-wizard');
+  drop.addEventListener('click', ()=>fileInput.click());
+  drop.addEventListener('dragover', e=>{e.preventDefault(); drop.classList.add('drag');});
+  drop.addEventListener('dragleave', ()=>drop.classList.remove('drag'));
+  drop.addEventListener('drop', e=>{e.preventDefault(); drop.classList.remove('drag'); if(e.dataTransfer.files.length) handle(e.dataTransfer.files[0]);});
+  fileInput.addEventListener('change', e=>{ if(e.target.files.length) handle(e.target.files[0]); });
+  function handle(file){
+    const reader = new FileReader();
+    reader.onload = ev=>{ preview.src = ev.target.result; preview.classList.remove('hidden'); photoDataUrl = ev.target.result; };
+    reader.readAsDataURL(file);
+  }
+})();
+
+function val(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+async function submitRequest(){
+  const btn = document.getElementById('submit-btn');
+  const errBox = document.getElementById('submit-error');
+  errBox.classList.add('hidden');
+  btn.disabled = true; btn.textContent = 'Se trimite...';
+
+  const campuri = {};
+  document.querySelectorAll('.dyn-field').forEach(el=>{ if(el.value) campuri[el.dataset.label] = el.value; });
+
+  const payload = {
+    companie: val('f-companie'), contact: val('f-contact'), telefon: val('f-telefon'), email: val('f-email'),
+    urgenta: document.querySelector('input[name=urg]:checked').value,
+    categorie: selectedCat, campuri, cod: val('f-cod'), descriere: val('f-descriere'),
+    fotoDataUrl: photoDataUrl || undefined,
+  };
+
+  try{
+    const res = await fetch('/api/requests', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Eroare la trimitere');
+    showConfirmation(data);
+    goStep(4);
+  }catch(e){
+    errBox.textContent = 'Nu am putut trimite cererea: ' + e.message;
+    errBox.classList.remove('hidden');
+  }
+  btn.disabled = false; btn.textContent = 'Trimite cererea →';
+}
+
+function showConfirmation(data){
+  const badges = document.getElementById('confirm-badges');
+  let html = `<span class="badge ok">Cerere #${data.id} salvată</span> `;
+  html += data.emailTrimis ? `<span class="badge ok">Email trimis automat</span>` : `<span class="badge warn">Email neconfigurat — folosește WhatsApp sau vei fi contactat direct</span>`;
+  badges.innerHTML = html;
+  document.getElementById('summary-text').textContent = data.summaryText;
+  document.getElementById('wa-link').href = data.whatsappLink;
+}
+
+function copySummary(){
+  navigator.clipboard.writeText(document.getElementById('summary-text').textContent).then(()=>{
+    const btn = event.target, old = btn.textContent;
+    btn.textContent = 'Copiat ✓'; setTimeout(()=>btn.textContent = old, 1500);
+  });
+}
+</script>
+</body>
+</html>

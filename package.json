@@ -1,0 +1,14 @@
+{
+  "name": "etrade-identificare-produse",
+  "version": "1.0.0",
+  "description": "Automatizare interna E-TRADE (Echychia Trade SRL) pentru identificarea produselor: formular public, baza de date persistenta, panou admin, trimitere automata de email si webhook pentru Sheets/Zapier/Make.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {},
+  "license": "UNLICENSED"
+}
