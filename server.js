@@ -153,6 +153,74 @@ async function sendMail(opts) {
   socket.end();
 }
 
+// ---------- Trimitere email prin API-ul Resend (HTTPS, port 443) ----------
+// Multe gazde gratuite (ex. Render) blocheaza porturile SMTP outbound (25/465/587),
+// dar niciodata HTTPS -- de-asta Resend e varianta implicita. Brevo si sendMail (SMTP)
+// raman ca alternative (auto-gazduire pe un server care nu blocheaza SMTP, sau daca
+// se prefera alt furnizor).
+function sendMailViaResend(opts) {
+  const { apiKey, fromEmail, fromName, to, subject, text } = opts;
+  if (!apiKey || !fromEmail || !to) throw new SmtpError('Configuratie Resend incompleta (RESEND_API_KEY / RESEND_FROM_EMAIL)');
+  const payload = JSON.stringify({
+    from: `${fromName || 'E-TRADE'} <${fromEmail}>`,
+    to: [to],
+    subject,
+    text,
+  });
+  return new Promise((resolve, reject) => {
+    const req = https.request('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    }, (res) => {
+      let body = '';
+      res.on('data', (c) => { body += c; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+        else reject(new SmtpError(`Resend a raspuns cu ${res.statusCode}: ${body.slice(0, 300)}`));
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
+function sendMailViaBrevo(opts) {
+  const { apiKey, fromEmail, fromName, to, subject, text } = opts;
+  if (!apiKey || !fromEmail || !to) throw new SmtpError('Configuratie Brevo incompleta (BREVO_API_KEY / BREVO_FROM_EMAIL)');
+  const payload = JSON.stringify({
+    sender: { email: fromEmail, name: fromName || 'E-TRADE' },
+    to: [{ email: to }],
+    subject,
+    textContent: text,
+  });
+  return new Promise((resolve, reject) => {
+    const req = https.request('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    }, (res) => {
+      let body = '';
+      res.on('data', (c) => { body += c; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+        else reject(new SmtpError(`Brevo a raspuns cu ${res.statusCode}: ${body.slice(0, 300)}`));
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
 // ---------- Basic Auth pentru /admin ----------
 function timingSafeEqualStr(a, b) {
   const bufA = Buffer.from(String(a)), bufB = Buffer.from(String(b));
@@ -289,19 +357,33 @@ async function handleCreateRequest(req, res) {
   const summaryText = buildSummaryText(row);
 
   let emailTrimis = false, emailEroare = null;
-  console.log(`[SMTP-CHECK] cerere #${id}: HOST=${!!process.env.SMTP_HOST} USER=${!!process.env.SMTP_USER} PASS=${!!process.env.SMTP_PASS}`);
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  const subject = `Cerere noua identificare produs #${id} - ${companie || 'client'}`;
+  if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+    try {
+      await sendMailViaResend({
+        apiKey: process.env.RESEND_API_KEY, fromEmail: process.env.RESEND_FROM_EMAIL, fromName: 'E-TRADE',
+        to: NOTIFY_EMAIL, subject, text: summaryText,
+      });
+      emailTrimis = true;
+    } catch (e) { emailEroare = e.message || String(e); }
+  } else if (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL) {
+    try {
+      await sendMailViaBrevo({
+        apiKey: process.env.BREVO_API_KEY, fromEmail: process.env.BREVO_FROM_EMAIL, fromName: 'E-TRADE',
+        to: NOTIFY_EMAIL, subject, text: summaryText,
+      });
+      emailTrimis = true;
+    } catch (e) { emailEroare = e.message || String(e); }
+  } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
       await sendMail({
         host: process.env.SMTP_HOST, port: parseInt(process.env.SMTP_PORT || '587', 10), secure: process.env.SMTP_SECURE === 'true',
         user: process.env.SMTP_USER, pass: process.env.SMTP_PASS, from: process.env.SMTP_FROM || process.env.SMTP_USER, to: NOTIFY_EMAIL,
-        subject: `Cerere noua identificare produs #${id} - ${companie || 'client'}`, text: summaryText,
+        subject, text: summaryText,
       });
       emailTrimis = true;
-      console.log(`[SMTP-CHECK] cerere #${id}: email trimis cu succes`);
     } catch (e) {
       emailEroare = e.message || e.code || String(e) || 'eroare necunoscuta';
-      console.log(`[SMTP-CHECK] cerere #${id}: EROARE la trimitere -- name=${e && e.name} code=${e && e.code} message=${e && e.message} string=${String(e)} stack=${e && e.stack}`);
     }
   }
   db.prepare('UPDATE requests SET email_trimis = ?, email_eroare = ? WHERE id = ?').run(emailTrimis ? 1 : 0, emailEroare, id);
@@ -406,11 +488,14 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`E-TRADE identificare produse - server pornit pe portul ${PORT}`);
   if (!process.env.ADMIN_PASSWORD) console.log('  ATENTIE: ADMIN_PASSWORD nu e setat -> panoul admin va raspunde cu eroare pana il configurati.');
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    const lipsa = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'].filter(k => !process.env[k]);
-    console.log('  Info: SMTP neconfigurat (lipsesc: ' + lipsa.join(', ') + ') -> emailurile automate sunt dezactivate (cererile tot se salveaza).');
+  if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+    console.log('  Info: email configurat prin Resend (sender=' + process.env.RESEND_FROM_EMAIL + ').');
+  } else if (process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL) {
+    console.log('  Info: email configurat prin Brevo (sender=' + process.env.BREVO_FROM_EMAIL + ').');
+  } else if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    console.log('  Info: email configurat prin SMTP (host=' + process.env.SMTP_HOST + ', user=' + process.env.SMTP_USER + ').');
   } else {
-    console.log('  Info: SMTP configurat (host=' + process.env.SMTP_HOST + ', user=' + process.env.SMTP_USER + ').');
+    console.log('  Info: email neconfigurat (nici RESEND_API_KEY, nici BREVO_API_KEY, nici SMTP) -> emailurile automate sunt dezactivate (cererile tot se salveaza).');
   }
 });
 
