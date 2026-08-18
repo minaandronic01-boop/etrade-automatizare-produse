@@ -257,6 +257,7 @@ async function handleCreateRequest(req, res) {
   const summaryText = buildSummaryText(row);
 
   let emailTrimis = false, emailEroare = null;
+  console.log(`[SMTP-CHECK] cerere #${id}: HOST=${!!process.env.SMTP_HOST} USER=${!!process.env.SMTP_USER} PASS=${!!process.env.SMTP_PASS}`);
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
       await sendMail({
@@ -265,7 +266,8 @@ async function handleCreateRequest(req, res) {
         subject: `Cerere noua identificare produs #${id} - ${companie || 'client'}`, text: summaryText,
       });
       emailTrimis = true;
-    } catch (e) { emailEroare = e.message; }
+      console.log(`[SMTP-CHECK] cerere #${id}: email trimis cu succes`);
+    } catch (e) { emailEroare = e.message; console.log(`[SMTP-CHECK] cerere #${id}: EROARE la trimitere: ${e.message}`); }
   }
   db.prepare('UPDATE requests SET email_trimis = ?, email_eroare = ? WHERE id = ?').run(emailTrimis ? 1 : 0, emailEroare, id);
 
