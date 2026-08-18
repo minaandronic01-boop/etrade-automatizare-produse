@@ -172,7 +172,7 @@ async function openRequest(id){
     <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
       <button class="btn" onclick="saveStatus(${r.id})">Salvează status</button>
       ${r.telefon ? `<a class="btn secondary" href="${waLink}" target="_blank">Deschide WhatsApp</a>` : ''}
-      ${r.email ? `<a class="btn secondary" href="mailto:${r.email}">Răspunde pe email</a>` : ''}
+      ${r.email ? `<a class="btn secondary" href="mailto:${escAttr(r.email)}">Răspunde pe email</a>` : ''}
       <button class="btn ghost" onclick="closeModal()">Închide</button>
     </div>
   `;
