@@ -267,7 +267,10 @@ async function handleCreateRequest(req, res) {
       });
       emailTrimis = true;
       console.log(`[SMTP-CHECK] cerere #${id}: email trimis cu succes`);
-    } catch (e) { emailEroare = e.message; console.log(`[SMTP-CHECK] cerere #${id}: EROARE la trimitere: ${e.message}`); }
+    } catch (e) {
+      emailEroare = e.message || e.code || String(e) || 'eroare necunoscuta';
+      console.log(`[SMTP-CHECK] cerere #${id}: EROARE la trimitere -- name=${e && e.name} code=${e && e.code} message=${e && e.message} string=${String(e)} stack=${e && e.stack}`);
+    }
   }
   db.prepare('UPDATE requests SET email_trimis = ?, email_eroare = ? WHERE id = ?').run(emailTrimis ? 1 : 0, emailEroare, id);
 
