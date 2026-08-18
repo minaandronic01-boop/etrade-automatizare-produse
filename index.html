@@ -63,6 +63,10 @@
   <div class="card step" id="step-1">
     <h2>Pasul 1 — Datele tale</h2>
     <div class="sub">Necesare pentru ca echipa E-TRADE să te poată contacta rapid.</div>
+    <div style="position:absolute;left:-9999px;" aria-hidden="true">
+      <label>Nu completați acest câmp</label>
+      <input type="text" id="f-hp" name="website" tabindex="-1" autocomplete="off">
+    </div>
     <div class="row">
       <div><label>Companie</label><input type="text" id="f-companie" placeholder="Ex: Fabrica SRL"></div>
       <div><label>Persoană de contact</label><input type="text" id="f-contact" placeholder="Nume și prenume"></div>
@@ -228,6 +232,7 @@ async function submitRequest(){
     urgenta: document.querySelector('input[name=urg]:checked').value,
     categorie: selectedCat, campuri, cod: val('f-cod'), descriere: val('f-descriere'),
     fotoDataUrl: photoDataUrl || undefined,
+    website: val('f-hp'),
   };
 
   try{
