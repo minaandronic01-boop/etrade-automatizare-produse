@@ -173,6 +173,7 @@ async function openRequest(id){
       <button class="btn" onclick="saveStatus(${r.id})">Salvează status</button>
       ${r.telefon ? `<a class="btn secondary" href="${waLink}" target="_blank">Deschide WhatsApp</a>` : ''}
       ${r.email ? `<a class="btn secondary" href="mailto:${escAttr(r.email)}">Răspunde pe email</a>` : ''}
+      <button class="btn ghost" onclick="deleteRequest(${r.id})" style="color:#B3261E;">Șterge cererea</button>
       <button class="btn ghost" onclick="closeModal()">Închide</button>
     </div>
   `;
@@ -184,6 +185,13 @@ document.getElementById('modal-bg').addEventListener('click', e=>{ if(e.target.i
 async function saveStatus(id){
   const status = document.getElementById('modal-status').value;
   await fetch('/api/admin/requests/' + id, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+  closeModal();
+  loadRequests();
+}
+
+async function deleteRequest(id){
+  if(!confirm('Ștergi definitiv cererea #' + id + '? Nu poate fi anulat.')) return;
+  await fetch('/api/admin/requests/' + id, { method:'DELETE' });
   closeModal();
   loadRequests();
 }
