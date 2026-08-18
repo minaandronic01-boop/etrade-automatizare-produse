@@ -366,7 +366,12 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`E-TRADE identificare produse - server pornit pe portul ${PORT}`);
   if (!process.env.ADMIN_PASSWORD) console.log('  ATENTIE: ADMIN_PASSWORD nu e setat -> panoul admin va raspunde cu eroare pana il configurati.');
-  if (!process.env.SMTP_HOST) console.log('  Info: SMTP neconfigurat -> emailurile automate sunt dezactivate (cererile tot se salveaza).');
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    const lipsa = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'].filter(k => !process.env[k]);
+    console.log('  Info: SMTP neconfigurat (lipsesc: ' + lipsa.join(', ') + ') -> emailurile automate sunt dezactivate (cererile tot se salveaza).');
+  } else {
+    console.log('  Info: SMTP configurat (host=' + process.env.SMTP_HOST + ', user=' + process.env.SMTP_USER + ').');
+  }
 });
 
 module.exports = server;
